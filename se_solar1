@@ -22,69 +22,63 @@ namespace IngameScript
 	partial class Program : MyGridProgram
 	{
 		//START
-		IMyTextSurfaceProvider solar_lcd;
-		IMySolarPanel solar_u;
-		IMySolarPanel solar_n;
-		IMySolarPanel solar_s;
-		IMySolarPanel solar_w;
-		IMySolarPanel solar_e;
-		IMyInteriorLight light1;
+		IMyTextSurfaceProvider solarLcd;
+		IMySolarPanel solarU;
+		IMySolarPanel solar0;
+		IMySolarPanel solar180;
+		IMySolarPanel solar270;
+		IMySolarPanel solar90;
 		IMyMotorAdvancedStator rotor_vert;
 		IMyMotorAdvancedStator rotor_hor;
 		public Program()
 		{
 			Runtime.UpdateFrequency = UpdateFrequency.Update100;
-			solar_u = GridTerminalSystem.GetBlockWithName("solar_u") as IMySolarPanel;
-			solar_n = GridTerminalSystem.GetBlockWithName("solar_n") as IMySolarPanel;
-			solar_s = GridTerminalSystem.GetBlockWithName("solar_s") as IMySolarPanel;
-			solar_w = GridTerminalSystem.GetBlockWithName("solar_w") as IMySolarPanel;
-			solar_e = GridTerminalSystem.GetBlockWithName("solar_e") as IMySolarPanel;
-			light1 = GridTerminalSystem.GetBlockWithName("light1") as IMyInteriorLight;
-			solar_lcd = GridTerminalSystem.GetBlockWithName("solar_lcd") as IMyTextSurfaceProvider;
+			solarU = GridTerminalSystem.GetBlockWithName("solarU") as IMySolarPanel;
+			solar0 = GridTerminalSystem.GetBlockWithName("solar0") as IMySolarPanel;
+			solar180 = GridTerminalSystem.GetBlockWithName("solar180") as IMySolarPanel;
+			solar270 = GridTerminalSystem.GetBlockWithName("solar270") as IMySolarPanel;
+			solar90 = GridTerminalSystem.GetBlockWithName("solar90") as IMySolarPanel;
+			solarLcd = GridTerminalSystem.GetBlockWithName("solarLcd") as IMyTextSurfaceProvider;
 			rotor_vert = GridTerminalSystem.GetBlockWithName("rotor_vert") as IMyMotorAdvancedStator;
 			rotor_hor = GridTerminalSystem.GetBlockWithName("rotor_hor") as IMyMotorAdvancedStator;
 		}
 	
-
+		//Only for LCD display, not for function
 		int solar_u_o = 0;
 		int solar_n_o = 0;
 		int solar_s_o = 0;
 		int solar_w_o = 0;
 		int solar_e_o = 0;
-		int solar_t = 0;
+		
+		
 		double solar_max = 0;
 		double x = 0;
 		double y = 0;
-		double angle2 = 0;
 		float angle_vert_goal = 0;
 		float angle_vert_now = 0;
 		float angle_hor_goal = 0;
 		float angle_hor_now = 0;
 		float rotor_vert_vel = 0;
 		float rotor_hor_vel = 0;
-		float angle_diff = 0;
 
 		public void Main(string argument, UpdateType updateSource)
 
 		{
-			solar_max = Math.Max(Math.Max(Math.Max(solar_n.MaxOutput, solar_s.MaxOutput), solar_w.MaxOutput), solar_e.MaxOutput);
-			solar_u_o = Convert.ToInt32(solar_u.MaxOutput / 0.0016);
-			solar_n_o = Convert.ToInt32(solar_n.MaxOutput / 0.0016);
-			solar_s_o = Convert.ToInt32(solar_s.MaxOutput / 0.0016);
-			solar_w_o = Convert.ToInt32(solar_w.MaxOutput / 0.0016);
-			solar_e_o = Convert.ToInt32(solar_e.MaxOutput / 0.0016);
-			solar_t = Convert.ToInt32((solar_n.MaxOutput + solar_s.MaxOutput + solar_w.MaxOutput + solar_e.MaxOutput) / 0.0016);
-			y = solar_e.MaxOutput - solar_w.MaxOutput;
-			x = solar_n.MaxOutput - solar_s.MaxOutput;
-			angle2 = Math.Atan2(y, x);
-			angle_vert_goal = Convert.ToSingle(angle2);
+			solar_max = Math.Max(Math.Max(Math.Max(solar0.MaxOutput, solar180.MaxOutput), solar270.MaxOutput), solar90.MaxOutput);
+			solar_u_o = Convert.ToInt32(solarU.MaxOutput / 0.0016);
+			solar_n_o = Convert.ToInt32(solar0.MaxOutput / 0.0016);
+			solar_s_o = Convert.ToInt32(solar180.MaxOutput / 0.0016);
+			solar_w_o = Convert.ToInt32(solar270.MaxOutput / 0.0016);
+			solar_e_o = Convert.ToInt32(solar90.MaxOutput / 0.0016);
+			y = solar90.MaxOutput - solar270.MaxOutput;
+			x = solar0.MaxOutput - solar180.MaxOutput;
+			angle_vert_goal = Convert.ToSingle(Math.Atan2(y, x));
 
-			//För att ta bort negativa vinklar
+			//This part is to make shure the angle of the sun is not negative from the Atan2 function
 			if (angle_vert_goal < 0)
 			{
 				angle_vert_goal = angle_vert_goal + Convert.ToSingle(Math.PI * 2);
 			}
-
 
 			angle_vert_now = rotor_vert.Angle;
 			rotor_vert.TargetVelocityRPM = rotor_vert_vel;
@@ -92,7 +86,7 @@ namespace IngameScript
 			angle_hor_now = rotor_hor.Angle;
 			rotor_hor.TargetVelocityRPM = rotor_hor_vel;
 
-			angle_hor_goal = Convert.ToSingle(solar_u.MaxOutput / (solar_max + solar_u.MaxOutput) * Math.PI / 2);
+			angle_hor_goal = Convert.ToSingle(solarU.MaxOutput / (solar_max + solarU.MaxOutput) * Math.PI / 2);
 
 
 
@@ -102,20 +96,12 @@ namespace IngameScript
 
 
 
-			solar_lcd.GetSurface(0).WriteText(
-				"Verkningsgrad Upp: " +  solar_u_o.ToString() + "%\n" + 
-				"Verkningsgrad Norr: " + solar_n_o.ToString() + "%\n" + 
-				"Verkningsgrad Syd: " + solar_s_o.ToString() + "%\n" + 
-				"Verkningsgrad Väst: " + solar_w_o.ToString() + "%\n" + 
-				"Verkningsgrad Öst: " + solar_e_o.ToString() + "%\n" +
-				"X: " + x.ToString() + "\n" +
-				"Y " + y.ToString() + "\n" +
-				"Angle " + angle_vert_goal.ToString() + "\n" +
-				"Angle vert " + angle_vert_now.ToString() + "\n" +
-				"Angle diff " + angle_diff.ToString() + "\n" +
-				"Angle hor goal " + angle_hor_goal.ToString() + "\n" +
-				"Angle hor now " + angle_hor_now.ToString() + "\n" +
-				"Total Väderstreck: " + solar_t.ToString());
+			solarLcd.GetSurface(0).WriteText(
+				"Efficiency Up: " + solar_u_o.ToString() + "%\n" +
+				"Efficiency 0: " + solar_n_o.ToString() + "%\n" +
+				"Efficiency 180: " + solar_s_o.ToString() + "%\n" +
+				"Efficiency 270: " + solar_w_o.ToString() + "%\n" +
+				"Efficiency 90: " + solar_e_o.ToString() + "%\n");
 			
 
 
