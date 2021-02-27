@@ -1,0 +1,159 @@
+using Sandbox.Game.EntityComponents;
+using Sandbox.ModAPI.Ingame;
+using Sandbox.ModAPI.Interfaces;
+using SpaceEngineers.Game.ModAPI.Ingame;
+using System.Collections.Generic;
+using System.Collections;
+using System.Linq;
+using System.Text;
+using System;
+using VRage.Collections;
+using VRage.Game.Components;
+using VRage.Game.GUI.TextPanel;
+using VRage.Game.ModAPI.Ingame.Utilities;
+using VRage.Game.ModAPI.Ingame;
+using VRage.Game.ObjectBuilders.Definitions;
+using VRage.Game;
+using VRage;
+using VRageMath;
+
+namespace IngameScript
+{
+	partial class Program : MyGridProgram
+	{
+		//START
+		IMyTextSurfaceProvider solar_lcd;
+		IMySolarPanel solar_u;
+		IMySolarPanel solar_n;
+		IMySolarPanel solar_s;
+		IMySolarPanel solar_w;
+		IMySolarPanel solar_e;
+		IMyInteriorLight light1;
+		IMyMotorAdvancedStator rotor_vert;
+		IMyMotorAdvancedStator rotor_hor;
+		public Program()
+		{
+			Runtime.UpdateFrequency = UpdateFrequency.Update100;
+			solar_u = GridTerminalSystem.GetBlockWithName("solar_u") as IMySolarPanel;
+			solar_n = GridTerminalSystem.GetBlockWithName("solar_n") as IMySolarPanel;
+			solar_s = GridTerminalSystem.GetBlockWithName("solar_s") as IMySolarPanel;
+			solar_w = GridTerminalSystem.GetBlockWithName("solar_w") as IMySolarPanel;
+			solar_e = GridTerminalSystem.GetBlockWithName("solar_e") as IMySolarPanel;
+			light1 = GridTerminalSystem.GetBlockWithName("light1") as IMyInteriorLight;
+			solar_lcd = GridTerminalSystem.GetBlockWithName("solar_lcd") as IMyTextSurfaceProvider;
+			rotor_vert = GridTerminalSystem.GetBlockWithName("rotor_vert") as IMyMotorAdvancedStator;
+			rotor_hor = GridTerminalSystem.GetBlockWithName("rotor_hor") as IMyMotorAdvancedStator;
+		}
+	
+
+		int solar_u_o = 0;
+		int solar_n_o = 0;
+		int solar_s_o = 0;
+		int solar_w_o = 0;
+		int solar_e_o = 0;
+		int solar_t = 0;
+		double solar_max = 0;
+		double x = 0;
+		double y = 0;
+		double angle2 = 0;
+		float angle_vert_goal = 0;
+		float angle_vert_now = 0;
+		float angle_hor_goal = 0;
+		float angle_hor_now = 0;
+		float rotor_vert_vel = 0;
+		float rotor_hor_vel = 0;
+		float angle_diff = 0;
+
+		public void Main(string argument, UpdateType updateSource)
+
+		{
+			solar_max = Math.Max(Math.Max(Math.Max(solar_n.MaxOutput, solar_s.MaxOutput), solar_w.MaxOutput), solar_e.MaxOutput);
+			solar_u_o = Convert.ToInt32(solar_u.MaxOutput / 0.0016);
+			solar_n_o = Convert.ToInt32(solar_n.MaxOutput / 0.0016);
+			solar_s_o = Convert.ToInt32(solar_s.MaxOutput / 0.0016);
+			solar_w_o = Convert.ToInt32(solar_w.MaxOutput / 0.0016);
+			solar_e_o = Convert.ToInt32(solar_e.MaxOutput / 0.0016);
+			solar_t = Convert.ToInt32((solar_n.MaxOutput + solar_s.MaxOutput + solar_w.MaxOutput + solar_e.MaxOutput) / 0.0016);
+			y = solar_e.MaxOutput - solar_w.MaxOutput;
+			x = solar_n.MaxOutput - solar_s.MaxOutput;
+			angle2 = Math.Atan2(y, x);
+			angle_vert_goal = Convert.ToSingle(angle2);
+
+			//För att ta bort negativa vinklar
+			if (angle_vert_goal < 0)
+			{
+				angle_vert_goal = angle_vert_goal + Convert.ToSingle(Math.PI * 2);
+			}
+
+
+			angle_vert_now = rotor_vert.Angle;
+			rotor_vert.TargetVelocityRPM = rotor_vert_vel;
+
+			angle_hor_now = rotor_hor.Angle;
+			rotor_hor.TargetVelocityRPM = rotor_hor_vel;
+
+			angle_hor_goal = Convert.ToSingle(solar_u.MaxOutput / (solar_max + solar_u.MaxOutput) * Math.PI / 2);
+
+
+
+
+
+
+
+
+
+			solar_lcd.GetSurface(0).WriteText(
+				"Verkningsgrad Upp: " +  solar_u_o.ToString() + "%\n" + 
+				"Verkningsgrad Norr: " + solar_n_o.ToString() + "%\n" + 
+				"Verkningsgrad Syd: " + solar_s_o.ToString() + "%\n" + 
+				"Verkningsgrad Väst: " + solar_w_o.ToString() + "%\n" + 
+				"Verkningsgrad Öst: " + solar_e_o.ToString() + "%\n" +
+				"X: " + x.ToString() + "\n" +
+				"Y " + y.ToString() + "\n" +
+				"Angle " + angle_vert_goal.ToString() + "\n" +
+				"Angle vert " + angle_vert_now.ToString() + "\n" +
+				"Angle diff " + angle_diff.ToString() + "\n" +
+				"Angle hor goal " + angle_hor_goal.ToString() + "\n" +
+				"Angle hor now " + angle_hor_now.ToString() + "\n" +
+				"Total Väderstreck: " + solar_t.ToString());
+			
+
+
+			if (angle_vert_goal - angle_vert_now < 0.1 && angle_vert_goal - angle_vert_now > -0.1)
+            {
+				rotor_vert_vel = 0;
+            }
+
+			else if (angle_vert_goal < angle_vert_now)
+			{
+				rotor_vert_vel = -0.5F;
+			}
+			else if (angle_vert_goal > angle_vert_now)
+            {
+				rotor_vert_vel = 0.5F;
+            }
+
+
+			if (angle_hor_goal - angle_hor_now < 0.1 && angle_hor_goal - angle_hor_now > -0.1)
+			{
+				rotor_hor_vel = 0;
+			}
+
+			else if (angle_hor_goal < angle_hor_now)
+			{
+				rotor_hor_vel = -0.5F;
+			}
+			else if (angle_hor_goal > angle_hor_now)
+			{
+				rotor_hor_vel = 0.5F;
+			}
+		}
+
+		//STOP
+	}
+}
+
+
+// Använd foreach loop för att räkna ut vinkeln
+// Antagligen behöver vinkeln minska med 360 om den går över 360. 
+//Lets face it, jag kommer behöva räkna med pi och radianer
