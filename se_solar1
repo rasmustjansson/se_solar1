@@ -139,7 +139,3 @@ namespace IngameScript
 	}
 }
 
-
-// Använd foreach loop för att räkna ut vinkeln
-// Antagligen behöver vinkeln minska med 360 om den går över 360. 
-//Lets face it, jag kommer behöva räkna med pi och radianer
